@@ -1,0 +1,27 @@
+# Cabal build artifacts
+/dist-newstyle/
+/dist/
+/cabal.sandbox.config
+/cabal.project.local
+/setup-config
+
+# Stack-related files (if you happen to use Stack as well)
+/.stack-work/
+/stack.yaml.lock
+
+# Haskell IDE tools
+/.hie/
+/.hie-bios
+/.ghc.environment.*
+/.hsenv/
+/*.prof
+/*.eventlog
+/.vscode/
+*.hcr
+
+# System and editor-specific files
+*.swp
+*.swo
+*~
+.
+
