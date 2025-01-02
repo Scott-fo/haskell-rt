@@ -1,6 +1,6 @@
 module Main where
 
-import Colour (Colour (Colour), writeColour)
+import Colour (writeColour)
 import Vec3 (Vec3 (Vec3))
 
 data Scene = Scene
@@ -14,7 +14,7 @@ renderImage s =
   let w = width s
       h = height s
    in unlines
-        [ writeColour (Colour (Vec3 r g 0))
+        [ writeColour (Vec3 r g 0)
           | j <- [0 .. h - 1],
             i <- [0 .. w - 1],
             let r = fromIntegral i / fromIntegral (w - 1)
