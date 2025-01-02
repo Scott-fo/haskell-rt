@@ -1,5 +1,8 @@
 module Main where
 
+import Colour (Colour (Colour), writeColour)
+import Vec3 (Vec3 (Vec3))
+
 data Scene = Scene
   { width :: Int,
     height :: Int
@@ -10,17 +13,13 @@ renderImage :: Scene -> String
 renderImage s =
   let w = width s
       h = height s
-   in unlines [renderPixel i j w h | j <- [0 .. h - 1], i <- [0 .. w - 1]]
-
-renderPixel :: Int -> Int -> Int -> Int -> String
-renderPixel i j w h =
-  let r = fromIntegral i / fromIntegral (w - 1) :: Double
-      g = fromIntegral j / fromIntegral (h - 1) :: Double
-      b = 0.0 :: Double
-      ir = floor (255.999 * r) :: Int
-      ig = floor (255.999 * g) :: Int
-      ib = floor (255.999 * b) :: Int
-   in unwords [show ir, show ig, show ib]
+   in unlines
+        [ writeColour (Colour (Vec3 r g 0))
+          | j <- [0 .. h - 1],
+            i <- [0 .. w - 1],
+            let r = fromIntegral i / fromIntegral (w - 1)
+                g = fromIntegral j / fromIntegral (h - 1)
+        ]
 
 main :: IO ()
 main = do
