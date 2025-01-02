@@ -7,6 +7,7 @@ data Ray = Ray
   { origin :: Point3,
     direction :: Vec3
   }
+  deriving (Show)
 
 at :: Ray -> Double -> Point3
 at (Ray o d) t = add o (mul d t)
