@@ -50,6 +50,12 @@ extra-doc-files:    CHANGELOG.md
 common warnings
     ghc-options: -Wall
 
+library
+    exposed-modules: Vec3
+    hs-source-dirs:  src
+    build-depends:   base ^>=4.17.2.1
+    default-language: Haskell2010
+
 executable rt
     -- Import common warning flags.
     import:           warnings
@@ -58,16 +64,23 @@ executable rt
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    -- other-modules:
+    other-modules: Vec3
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:    base ^>=4.17.2.1
+    build-depends:    base ^>=4.17.2.1, hspec ^>=2.9.5
 
     -- Directories containing source files.
-    hs-source-dirs:   app
+    hs-source-dirs:   app src
 
     -- Base language which the package is written in.
+    default-language: Haskell2010
+
+test-suite rt-tests
+    main-is:          Spec.hs
+    hs-source-dirs:   test
+    other-modules:    Vec3Spec
+    build-depends:    base, hspec, rt
     default-language: Haskell2010
