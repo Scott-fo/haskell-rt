@@ -5,7 +5,7 @@ import Hittable (HitRecord (normal), Hittable (hit))
 import HittableList (HittableList, addHittable, emptyHittableList)
 import Ray (Ray (Ray, direction))
 import Sphere (Sphere (Sphere))
-import Vec3 (Point3 (Point3), Vec3 (Vec3), add, div, mul, sub, unitVector)
+import Vec3 (Vec3 (Vec3), add, div, mul, sub, unitVector)
 
 data RenderConfig = RenderConfig
   { imageWidth :: Int,
@@ -23,8 +23,8 @@ main = do
       iw = 400 :: Int
       ih = floor (fromIntegral iw / aspectRatio) :: Int
 
-      sphere1 = Sphere (Point3 $ Vec3 0 0 (-1)) 0.5
-      sphere2 = Sphere (Point3 $ Vec3 0 (-100.5) (-1)) 100
+      sphere1 = Sphere (Vec3 0 0 (-1)) 0.5
+      sphere2 = Sphere (Vec3 0 (-100.5) (-1)) 100
 
       w = addHittable (addHittable emptyHittableList sphere1) sphere2
 
@@ -78,7 +78,7 @@ renderImage config =
       camera = cameraCenter config
       hl = world config
    in unlines
-        [ writeColour (rayColour (Ray (Point3 camera) rayDirection) hl)
+        [ writeColour (rayColour (Ray camera rayDirection) hl)
           | j <- [0 .. h - 1],
             i <- [0 .. w - 1],
             let pixelCenter =

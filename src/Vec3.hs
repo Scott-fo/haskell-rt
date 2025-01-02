@@ -3,8 +3,7 @@ module Vec3 where
 data Vec3 = Vec3 Double Double Double
   deriving (Show, Eq)
 
-newtype Point3 = Point3 Vec3
-  deriving (Show, Eq)
+type Point3 = Vec3
 
 add :: Vec3 -> Vec3 -> Vec3
 add (Vec3 ux uy uz) (Vec3 vx vy vz) = Vec3 (ux + vx) (uy + vy) (uz + vz)
