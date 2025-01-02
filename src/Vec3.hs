@@ -16,7 +16,7 @@ mul (Vec3 x' y' z') t = Vec3 (x' * t) (y' * t) (z' * t)
 
 div :: Vec3 -> Double -> Maybe Vec3
 div _ 0 = Nothing
-div (Vec3 x' y' z') t = Just (Vec3 (x' / t) (y' / t) (z' / t))
+div v t = Just $ mul v (1 / t)
 
 negative :: Vec3 -> Vec3
 negative (Vec3 x' y' z') = Vec3 (-x') (-y') (-z')
