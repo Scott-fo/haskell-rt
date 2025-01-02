@@ -1,8 +1,8 @@
-module Sphere where
+module Sphere (Sphere (..)) where
 
 import Control.Monad (guard)
 import Data.List (find)
-import Hittable (HitRecord (HitRecord, frontFace, normal, p, t), Hittable (hit), setFaceNormal)
+import Hittable (HitRecord (HitRecord, frontFace, hitPoint, hitT, normal), Hittable (hit), setFaceNormal)
 import Ray (Ray (direction, origin), at)
 import Vec3 (Point3, dot, lengthSquared, mul, sub)
 
@@ -26,8 +26,8 @@ instance Hittable Sphere where
         validRoot = find (\r -> r > tmin && r < tmax) roots
 
     root <- validRoot
-    let hitPoint = at ray root
-        outwardNormal = (hitPoint `sub` center sphere) `mul` (1 / radius sphere)
-        record = HitRecord {p = hitPoint, normal = outwardNormal, t = root, frontFace = False}
+    let hPoint = at ray root
+        outwardNormal = (hPoint `sub` center sphere) `mul` (1 / radius sphere)
+        record = HitRecord {hitPoint = hPoint, normal = outwardNormal, hitT = root, frontFace = False}
 
     return $ setFaceNormal ray outwardNormal record

@@ -2,7 +2,7 @@ module Main where
 
 import Colour (Colour (Colour), mkColour, writeColour)
 import Hittable (HitRecord (normal), Hittable (hit))
-import HittableList (HittableList, addHittable, emptyHittableList)
+import HittableList (HittableList, fromList)
 import Ray (Ray (Ray, direction))
 import Sphere (Sphere (Sphere))
 import Vec3 (Vec3 (Vec3), add, div, mul, sub, unitVector)
@@ -26,7 +26,7 @@ main = do
       sphere1 = Sphere (Vec3 0 0 (-1)) 0.5
       sphere2 = Sphere (Vec3 0 (-100.5) (-1)) 100
 
-      w = addHittable (addHittable emptyHittableList sphere1) sphere2
+      w = fromList [sphere1, sphere2]
 
       focalLength = 1.0 :: Double
       viewportHeight = 2.0 :: Double
@@ -50,7 +50,7 @@ main = do
           `sub` (viewportU `mul` 0.5)
           `sub` (viewportV `mul` 0.5)
 
-      pLoc = viewportUpperLeft `add` ((pDU `add` pDV) `mul` 0.5)
+      pLoc = viewportUpperLeft `Vec3.add` ((pDU `Vec3.add` pDV) `mul` 0.5)
 
       renderConfig =
         RenderConfig
@@ -83,8 +83,8 @@ renderImage config =
             i <- [0 .. w - 1],
             let pixelCenter =
                   pixel00
-                    `add` (deltaU `mul` fromIntegral i)
-                    `add` (deltaV `mul` fromIntegral j)
+                    `Vec3.add` (deltaU `mul` fromIntegral i)
+                    `Vec3.add` (deltaV `mul` fromIntegral j)
                 rayDirection = pixelCenter `sub` camera
         ]
 
@@ -99,7 +99,7 @@ rayColour r world' =
     Nothing -> backgroundColour r
 
 sphereColour :: HitRecord -> Colour
-sphereColour rec = Colour $ mul (normal rec `add` Vec3 1 1 1) 0.5
+sphereColour rec = Colour $ mul (normal rec `Vec3.add` Vec3 1 1 1) 0.5
 
 backgroundColour :: Ray -> Colour
 backgroundColour r =
@@ -108,7 +108,7 @@ backgroundColour r =
       let t = 0.5 * (y + 1.0)
           white = Vec3 1.0 1.0 1.0
           blue = Vec3 0.5 0.7 1.0
-       in Colour $ (white `mul` (1.0 - t)) `add` (blue `mul` t)
+       in Colour $ (white `mul` (1.0 - t)) `Vec3.add` (blue `mul` t)
     Nothing -> mkColour 0 0 0
 
 infinity :: Double

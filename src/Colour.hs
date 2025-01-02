@@ -1,4 +1,10 @@
-module Colour where
+module Colour
+  ( Colour (Colour),
+    writeColour,
+    toRgb,
+    mkColour,
+  )
+where
 
 import Vec3 (Vec3 (Vec3))
 

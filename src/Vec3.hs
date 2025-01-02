@@ -1,6 +1,6 @@
 module Vec3 where
 
-data Vec3 = Vec3 Double Double Double
+data Vec3 = Vec3 !Double !Double !Double
   deriving (Show, Eq)
 
 type Point3 = Vec3
