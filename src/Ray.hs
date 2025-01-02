@@ -1,7 +1,7 @@
 module Ray where
 
 import Colour (Colour)
-import Vec3 (Point3, Vec3 (Vec3), add, dot, mul, sub, unitVector)
+import Vec3 (Point3, Vec3 (Vec3), add, dot, lengthSquared, mul, sub, unitVector)
 
 data Ray = Ray
   { origin :: Point3,
@@ -35,13 +35,13 @@ backgroundColour r =
 hitSphere :: Point3 -> Double -> Ray -> Maybe Double
 hitSphere center radius (Ray origin' direction') =
   let oc = center `sub` origin'
-      a = dot direction' direction'
-      b = -(2.0 * dot direction' oc)
-      c = dot oc oc - (radius * radius)
-      discriminant = b * b - 4 * a * c
+      a = lengthSquared direction'
+      h = dot direction' oc
+      c = lengthSquared oc - (radius * radius)
+      discriminant = h * h - a * c
    in if discriminant < 0
         then Nothing
-        else Just ((-b - sqrt discriminant) / (2 * a))
+        else Just ((h - sqrt discriminant) / a)
 
 normalize :: Vec3 -> Vec3
 normalize v = case unitVector v of
