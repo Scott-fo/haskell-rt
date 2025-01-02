@@ -12,7 +12,7 @@ data Sphere = Sphere
 
 instance Hittable Sphere where
   hit (Sphere center' radius') (Ray origin direction) tmin tmax =
-    let oc = origin `sub` center'
+    let oc = center' `sub` origin
         a = lengthSquared direction
         h = dot direction oc
         c = lengthSquared oc - radius' * radius'
@@ -30,4 +30,5 @@ instance Hittable Sphere where
                     let p = at (Ray origin direction) root
                         outwardNormal = (p `sub` center') `mul` (1 / radius')
                         record = HitRecord p outwardNormal root False
-                     in Just $ setFaceNormal (Ray origin direction) outwardNormal record
+                     in Just $
+                          setFaceNormal (Ray origin direction) outwardNormal record
