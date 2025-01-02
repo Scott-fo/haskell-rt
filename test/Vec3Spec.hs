@@ -16,7 +16,7 @@ spec = do
       mul (Vec3 1 2 3) 2 `shouldBe` Vec3 2 4 6
 
     it "divides a vector by a scalar" $ do
-      Vec3.div (Vec3 2 4 6) 2 `shouldBe` Vec3 1 2 3
+      Vec3.div (Vec3 2 4 6) 2 `shouldBe` Just (Vec3 1 2 3)
 
     it "calculates the length of a vector" $ do
       Vec3.length (Vec3 3 4 0) `shouldBe` 5
@@ -28,4 +28,4 @@ spec = do
       cross (Vec3 1 0 0) (Vec3 0 1 0) `shouldBe` Vec3 0 0 1
 
     it "normalizes a vector" $ do
-      unitVector (Vec3 3 0 0) `shouldBe` Vec3 1 0 0
+      unitVector (Vec3 3 0 0) `shouldBe` Just (Vec3 1 0 0)
