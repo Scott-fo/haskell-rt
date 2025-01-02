@@ -1,11 +1,11 @@
 module Main where
 
-import Colour (Colour, writeColour)
+import Colour (Colour (Colour), mkColour, writeColour)
 import Hittable (HitRecord (normal), Hittable (hit))
 import HittableList (HittableList, addHittable, emptyHittableList)
 import Ray (Ray (Ray, direction))
 import Sphere (Sphere (Sphere))
-import Vec3 (Vec3 (Vec3), add, div, mul, sub, unitVector)
+import Vec3 (Point3 (Point3), Vec3 (Vec3), add, div, mul, sub, unitVector)
 
 data RenderConfig = RenderConfig
   { imageWidth :: Int,
@@ -23,8 +23,8 @@ main = do
       iw = 400 :: Int
       ih = floor (fromIntegral iw / aspectRatio) :: Int
 
-      sphere1 = Sphere (Vec3 0 0 (-1)) 0.5
-      sphere2 = Sphere (Vec3 0 (-100.5) (-1)) 100
+      sphere1 = Sphere (Point3 $ Vec3 0 0 (-1)) 0.5
+      sphere2 = Sphere (Point3 $ Vec3 0 (-100.5) (-1)) 100
 
       w = addHittable (addHittable emptyHittableList sphere1) sphere2
 
@@ -78,7 +78,7 @@ renderImage config =
       camera = cameraCenter config
       hl = world config
    in unlines
-        [ writeColour (rayColour (Ray camera rayDirection) hl)
+        [ writeColour (rayColour (Ray (Point3 camera) rayDirection) hl)
           | j <- [0 .. h - 1],
             i <- [0 .. w - 1],
             let pixelCenter =
@@ -98,18 +98,18 @@ rayColour r world' =
     Just rec -> sphereColour rec
     Nothing -> backgroundColour r
 
-sphereColour :: HitRecord -> Vec3
-sphereColour rec = mul (normal rec `add` Vec3 1 1 1) 0.5
+sphereColour :: HitRecord -> Colour
+sphereColour rec = Colour $ mul (normal rec `add` Vec3 1 1 1) 0.5
 
-backgroundColour :: Ray -> Vec3
+backgroundColour :: Ray -> Colour
 backgroundColour r =
   case unitVector (direction r) of
     Just (Vec3 _ y _) ->
       let t = 0.5 * (y + 1.0)
           white = Vec3 1.0 1.0 1.0
           blue = Vec3 0.5 0.7 1.0
-       in (white `mul` (1.0 - t)) `add` (blue `mul` t)
-    Nothing -> Vec3 0 0 0
+       in Colour $ (white `mul` (1.0 - t)) `add` (blue `mul` t)
+    Nothing -> mkColour 0 0 0
 
 infinity :: Double
 infinity = 1 / 0

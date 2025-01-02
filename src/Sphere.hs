@@ -1,7 +1,9 @@
 module Sphere where
 
-import Hittable (HitRecord (HitRecord), Hittable (hit), setFaceNormal)
-import Ray (Ray (Ray), at)
+import Control.Monad (guard)
+import Data.List (find)
+import Hittable (HitRecord (HitRecord, frontFace, normal, p, t), Hittable (hit), setFaceNormal)
+import Ray (Ray (direction, origin), at)
 import Vec3 (Point3, dot, lengthSquared, mul, sub)
 
 data Sphere = Sphere
@@ -11,24 +13,21 @@ data Sphere = Sphere
   deriving (Show)
 
 instance Hittable Sphere where
-  hit (Sphere center' radius') (Ray origin direction) tmin tmax =
-    let oc = center' `sub` origin
-        a = lengthSquared direction
-        h = dot direction oc
-        c = lengthSquared oc - radius' * radius'
+  hit sphere ray tmin tmax = do
+    let oc = center sphere `sub` origin ray
+        a = lengthSquared (direction ray)
+        h = dot (direction ray) oc
+        c = lengthSquared oc - radius sphere ^ (2 :: Int)
         discriminant = h * h - a * c
-     in if discriminant < 0
-          then Nothing
-          else
-            let sqrtd = sqrt discriminant
-                root1 = (h - sqrtd) / a
-                root2 = (h + sqrtd) / a
-                root = if root1 > tmin && root1 < tmax then root1 else root2
-             in if root <= tmin || root >= tmax
-                  then Nothing
-                  else
-                    let p = at (Ray origin direction) root
-                        outwardNormal = (p `sub` center') `mul` (1 / radius')
-                        record = HitRecord p outwardNormal root False
-                     in Just $
-                          setFaceNormal (Ray origin direction) outwardNormal record
+
+    guard (discriminant >= 0)
+    let sqrtd = sqrt discriminant
+        roots = [(h - sqrtd) / a, (h + sqrtd) / a]
+        validRoot = find (\r -> r > tmin && r < tmax) roots
+
+    root <- validRoot
+    let hitPoint = at ray root
+        outwardNormal = (hitPoint `sub` center sphere) `mul` (1 / radius sphere)
+        record = HitRecord {p = hitPoint, normal = outwardNormal, t = root, frontFace = False}
+
+    return $ setFaceNormal ray outwardNormal record
