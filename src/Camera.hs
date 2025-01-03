@@ -13,18 +13,19 @@ import Colour (Colour (Colour), mkColour, mulColour, sumColours, writeColour)
 import Control.Monad (replicateM)
 import Data.List (foldl')
 import Data.Maybe (fromMaybe)
-import Hittable (HitRecord (HitRecord, normal), Hittable (hit))
+import Hittable (HitRecord (HitRecord, hitPoint, normal), Hittable (hit))
 import HittableList (HittableList)
 import Interval (unsafeMkInterval)
 import Ray (Ray (Ray, direction))
 import System.Random.Stateful (mkStdGen)
 import Utils (RayM, randomDoubleRange, runRayM)
-import Vec3 (Point3, Vec3 (Vec3), add, mul, sub, unitVector)
+import Vec3 (Point3, Vec3 (Vec3), add, mul, randomOnHemisphere, sub, unitVector)
 
 data Camera = Camera
   { aspectRatio :: Double,
     imageWidth :: Int,
     samplesPerPixel :: Int,
+    maxDepth :: Int,
     imageHeight :: Int,
     center :: Point3,
     pixel00Loc :: Point3,
@@ -40,6 +41,7 @@ initialize =
       imageHeight = floor (fromIntegral imageWidth / aspectRatio)
 
       samplesPerPixel = 100
+      maxDepth = 50
 
       focalLength = 1.0 :: Double
       viewportHeight = 2.0 :: Double
@@ -82,13 +84,9 @@ render world =
 
         samplePixel :: (Int, Int) -> RayM Colour
         samplePixel (i, j) = do
-          samples <-
-            replicateM
-              samplesPerPixel
-              ( do
-                  ray <- getRay camera i j
-                  return $ rayColour ray world
-              )
+          samples <- replicateM samplesPerPixel $ do
+            ray <- getRay camera i j
+            rayColour ray maxDepth world
 
           let pixelScale = 1.0 / fromIntegral samplesPerPixel
           return $ mulColour pixelScale (sumColours samples)
@@ -99,20 +97,29 @@ getRay Camera {..} i j = do
   offsetY <- randomDoubleRange (-0.5) 0.5
 
   let pixelSample =
-        pixel00Loc
-          `Vec3.add` (pixelDeltaU `mul` (fromIntegral i + offsetX))
-          `Vec3.add` (pixelDeltaV `mul` (fromIntegral j + offsetY))
+        foldl'
+          Vec3.add
+          pixel00Loc
+          [ mul pixelDeltaU (fromIntegral i + offsetX),
+            mul pixelDeltaV (fromIntegral j + offsetY)
+          ]
 
   return $ Ray center (pixelSample `sub` center)
 
-rayColour :: Ray -> HittableList -> Colour
-rayColour ray world = fromMaybe (backgroundColour ray) $ do
-  let i = unsafeMkInterval 0 infinity
-  rec <- hit world ray i
-  return $ sphereColour rec
+rayColour :: Ray -> Int -> HittableList -> RayM Colour
+rayColour ray depth world
+  | depth <= 0 = return $ Colour $ Vec3 0 0 0
+  | otherwise =
+      maybe
+        (return $ backgroundColour ray)
+        (\rec -> sphereColour rec depth world)
+        (hit world ray (unsafeMkInterval 0.001 infinity))
 
-sphereColour :: HitRecord -> Colour
-sphereColour HitRecord {..} = Colour $ mul (Vec3.add normal (Vec3 1 1 1)) 0.5
+sphereColour :: HitRecord -> Int -> HittableList -> RayM Colour
+sphereColour HitRecord {..} depth world = do
+  direction <- randomOnHemisphere normal
+  colour <- rayColour (Ray hitPoint direction) (depth - 1) world
+  return $ mulColour 0.5 colour
 
 backgroundColour :: Ray -> Colour
 backgroundColour Ray {..} = fromMaybe (mkColour 0 0 0) $ do

@@ -1,5 +1,7 @@
 module Vec3 where
 
+import Utils (RayM, randomDouble, randomDoubleRange)
+
 data Vec3 = Vec3 !Double !Double !Double
   deriving (Show, Eq)
 
@@ -40,3 +42,29 @@ unitVector v
   | otherwise = Vec3.div v vl
   where
     vl = Vec3.length v
+
+randomVec3 :: RayM Vec3
+randomVec3 = do
+  x <- randomDouble
+  y <- randomDouble
+  Vec3 x y <$> randomDouble
+
+randomVec3Range :: Double -> Double -> RayM Vec3
+randomVec3Range min' max' = do
+  x <- randomDoubleRange min' max'
+  y <- randomDoubleRange min' max'
+  z <- randomDoubleRange min' max'
+  return $ Vec3 x y z
+
+randomUnitVec3 :: RayM Vec3
+randomUnitVec3 = do
+  vec <- randomVec3Range (-1) 1
+  maybe randomUnitVec3 return (unitVector vec)
+
+randomOnHemisphere :: Vec3 -> RayM Vec3
+randomOnHemisphere normal = do
+  onUnitSphere <- randomUnitVec3
+  return $
+    if dot onUnitSphere normal > 0
+      then onUnitSphere
+      else negative onUnitSphere
