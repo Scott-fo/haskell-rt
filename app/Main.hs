@@ -15,7 +15,8 @@ main = do
       sphere2 = Sphere (Vec3 0 (-100.5) (-1)) 100
 
       world = fromList [sphere1, sphere2]
-      image = render world
+
+  image <- render world
 
   result <- try $ TIO.writeFile "image.ppm" (T.pack image)
   case result of

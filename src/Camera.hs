@@ -10,6 +10,8 @@ module Camera
 where
 
 import Colour (Colour (Colour), mkColour, mulColour, sumColours, writeColour)
+import Control.Concurrent (getNumCapabilities)
+import Control.Concurrent.Async (mapConcurrently)
 import Control.Monad (replicateM)
 import Data.List (foldl')
 import Data.Maybe (fromMaybe)
@@ -19,7 +21,7 @@ import Interval (unsafeMkInterval)
 import Ray (Ray (Ray, direction))
 import System.Random.Stateful (mkStdGen)
 import Utils (RayM, randomDoubleRange, runRayM)
-import Vec3 (Point3, Vec3 (Vec3), add, mul, randomOnHemisphere, sub, unitVector)
+import Vec3 (Point3, Vec3 (Vec3), add, mul, randomUnitVec3, sub, unitVector)
 
 data Camera = Camera
   { aspectRatio :: Double,
@@ -66,30 +68,43 @@ initialize =
       pixel00Loc = viewportUpperLeft `Vec3.add` ((pixelDeltaU `Vec3.add` pixelDeltaV) `mul` 0.5)
    in Camera {..}
 
-render :: HittableList -> String
-render world =
-  let initialGen = mkStdGen 42
-      (result, _) = runRayM renderM initialGen
-   in result
-  where
-    camera@Camera {..} = initialize
+splitIntoChunks :: Int -> Int -> [(Int, Int)]
+splitIntoChunks numChunks total =
+  let chunkSize = total `div` numChunks
+      remainder = total `mod` numChunks
+      sizes = replicate remainder (chunkSize + 1) ++ replicate (numChunks - remainder) chunkSize
+      starts = scanl (+) 0 sizes
+   in zip starts (tail starts)
 
-    renderM :: RayM String
-    renderM = do
-      let pixels = [(i, j) | j <- [0 .. imageHeight - 1], i <- [0 .. imageWidth - 1]]
-      pixelColours <- mapM samplePixel pixels
-      return $ header ++ unlines (map writeColour pixelColours)
-      where
-        header = ppmHeader imageWidth imageHeight
+generatePixelCoords :: Int -> Int -> Int -> [(Int, Int)]
+generatePixelCoords imageWidth start end =
+  [(i, j) | j <- [start .. end - 1], i <- [0 .. imageWidth - 1]]
 
-        samplePixel :: (Int, Int) -> RayM Colour
-        samplePixel (i, j) = do
-          samples <- replicateM samplesPerPixel $ do
-            ray <- getRay camera i j
-            rayColour ray maxDepth world
+samplePixel :: Camera -> HittableList -> (Int, Int) -> RayM Colour
+samplePixel camera@Camera {..} world (i, j) = do
+  samples <- replicateM samplesPerPixel $ do
+    ray <- getRay camera i j
+    rayColour ray maxDepth world
 
-          let pixelScale = 1.0 / fromIntegral samplesPerPixel
-          return $ mulColour pixelScale (sumColours samples)
+  let pixelScale = 1.0 / fromIntegral samplesPerPixel
+  return $ mulColour pixelScale (sumColours samples)
+
+renderChunk :: Camera -> HittableList -> (Int, Int) -> IO String
+renderChunk camera world (start, end) = do
+  let initialGen = mkStdGen (42 + start)
+      pixels = generatePixelCoords (imageWidth camera) start end
+      (colours, _) = runRayM (mapM (samplePixel camera world) pixels) initialGen
+  return $ unlines (map writeColour colours)
+
+render :: HittableList -> IO String
+render world = do
+  numCores <- getNumCapabilities
+  let camera = initialize
+      chunks = splitIntoChunks numCores (imageHeight camera)
+      header = ppmHeader (imageWidth camera) (imageHeight camera)
+
+  chunkResults <- mapConcurrently (renderChunk camera world) chunks
+  return $ header ++ concat chunkResults
 
 getRay :: Camera -> Int -> Int -> RayM Ray
 getRay Camera {..} i j = do
@@ -117,8 +132,8 @@ rayColour ray depth world
 
 sphereColour :: HitRecord -> Int -> HittableList -> RayM Colour
 sphereColour HitRecord {..} depth world = do
-  direction <- randomOnHemisphere normal
-  colour <- rayColour (Ray hitPoint direction) (depth - 1) world
+  direction <- randomUnitVec3
+  colour <- rayColour (Ray hitPoint (direction `Vec3.add` normal)) (depth - 1) world
   return $ mulColour 0.5 colour
 
 backgroundColour :: Ray -> Colour
