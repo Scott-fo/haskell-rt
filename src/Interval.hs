@@ -24,3 +24,6 @@ contains (Interval min' max') x = min' <= x && x <= max'
 
 surrounds :: Interval -> Double -> Bool
 surrounds (Interval min' max') x = min' < x && x < max'
+
+clamp :: Interval -> Double -> Double
+clamp (Interval min' max') = max min' . min max'

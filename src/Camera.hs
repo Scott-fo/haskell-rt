@@ -9,18 +9,22 @@ module Camera
   )
 where
 
-import Colour (Colour (Colour), mkColour, writeColour)
+import Colour (Colour (Colour), mkColour, mulColour, sumColours, writeColour)
+import Control.Monad (replicateM)
 import Data.List (foldl')
 import Data.Maybe (fromMaybe)
 import Hittable (HitRecord (HitRecord, normal), Hittable (hit))
 import HittableList (HittableList)
 import Interval (unsafeMkInterval)
 import Ray (Ray (Ray, direction))
+import System.Random.Stateful (mkStdGen)
+import Utils (RayM, randomDoubleRange, runRayM)
 import Vec3 (Point3, Vec3 (Vec3), add, mul, sub, unitVector)
 
 data Camera = Camera
   { aspectRatio :: Double,
     imageWidth :: Int,
+    samplesPerPixel :: Int,
     imageHeight :: Int,
     center :: Point3,
     pixel00Loc :: Point3,
@@ -34,6 +38,8 @@ initialize =
   let aspectRatio = 16.0 / 9.0 :: Double
       imageWidth = 400 :: Int
       imageHeight = floor (fromIntegral imageWidth / aspectRatio)
+
+      samplesPerPixel = 100
 
       focalLength = 1.0 :: Double
       viewportHeight = 2.0 :: Double
@@ -59,22 +65,45 @@ initialize =
    in Camera {..}
 
 render :: HittableList -> String
-render world = header ++ body
+render world =
+  let initialGen = mkStdGen 42
+      (result, _) = runRayM renderM initialGen
+   in result
   where
-    Camera {..} = initialize
-    header = ppmHeader imageWidth imageHeight
-    body =
-      unlines
-        [ writeColour (rayColour ray world)
-          | j <- [0 .. imageHeight - 1],
-            i <- [0 .. imageWidth - 1],
-            let pixelCenter =
-                  pixel00Loc
-                    `Vec3.add` (pixelDeltaU `mul` fromIntegral i)
-                    `Vec3.add` (pixelDeltaV `mul` fromIntegral j),
-            let rayDirection = pixelCenter `sub` center,
-            let ray = Ray center rayDirection
-        ]
+    camera@Camera {..} = initialize
+
+    renderM :: RayM String
+    renderM = do
+      let pixels = [(i, j) | j <- [0 .. imageHeight - 1], i <- [0 .. imageWidth - 1]]
+      pixelColours <- mapM samplePixel pixels
+      return $ header ++ unlines (map writeColour pixelColours)
+      where
+        header = ppmHeader imageWidth imageHeight
+
+        samplePixel :: (Int, Int) -> RayM Colour
+        samplePixel (i, j) = do
+          samples <-
+            replicateM
+              samplesPerPixel
+              ( do
+                  ray <- getRay camera i j
+                  return $ rayColour ray world
+              )
+
+          let pixelScale = 1.0 / fromIntegral samplesPerPixel
+          return $ mulColour pixelScale (sumColours samples)
+
+getRay :: Camera -> Int -> Int -> RayM Ray
+getRay Camera {..} i j = do
+  offsetX <- randomDoubleRange (-0.5) 0.5
+  offsetY <- randomDoubleRange (-0.5) 0.5
+
+  let pixelSample =
+        pixel00Loc
+          `Vec3.add` (pixelDeltaU `mul` (fromIntegral i + offsetX))
+          `Vec3.add` (pixelDeltaV `mul` (fromIntegral j + offsetY))
+
+  return $ Ray center (pixelSample `sub` center)
 
 rayColour :: Ray -> HittableList -> Colour
 rayColour ray world = fromMaybe (backgroundColour ray) $ do
