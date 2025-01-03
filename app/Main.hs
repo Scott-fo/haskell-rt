@@ -10,6 +10,7 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Hittable (HitRecord (HitRecord, normal), Hittable (hit))
 import HittableList (HittableList, fromList)
+import Interval (unsafeMkInterval)
 import Ray (Ray (Ray, direction))
 import Sphere (Sphere (Sphere))
 import System.IO (hPutStrLn, stderr)
@@ -103,7 +104,8 @@ ppmHeader w h =
 
 rayColour :: Ray -> HittableList -> Colour
 rayColour ray world = fromMaybe (backgroundColour ray) $ do
-  rec <- hit world ray 0 infinity
+  let i = unsafeMkInterval 0 infinity
+  rec <- hit world ray i
   return $ sphereColour rec
 
 sphereColour :: HitRecord -> Colour

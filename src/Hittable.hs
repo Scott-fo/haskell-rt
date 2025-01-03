@@ -6,31 +6,32 @@ module Hittable
   )
 where
 
+import Interval (Interval)
 import Ray (Ray (direction))
 import Vec3 (Point3, Vec3, dot, negative)
 
--- | Records the details of a ray-object intersection
+-- Records the details of a ray-object intersection
 data HitRecord = HitRecord
-  { -- | Point of intersection
+  { -- Point of intersection
     hitPoint :: !Point3,
-    -- | Surface normal at intersection
+    -- Surface normal at intersection
     normal :: !Vec3,
-    -- | Distance along ray to intersection
+    -- Distance along ray to intersection
     hitT :: !Double,
-    -- | Whether ray hit the front face
+    -- Whether ray hit the front face
     frontFace :: !Bool
   }
   deriving (Show)
 
--- | Smart constructor for HitRecord that automatically sets face normal
+-- Smart constructor for HitRecord that automatically sets face normal
 mkHitRecord ::
-  -- | Intersection point
+  -- Intersection point
   Point3 ->
-  -- | Outward normal (before orientation)
+  -- Outward normal (before orientation)
   Vec3 ->
-  -- | Ray parameter t
+  -- Ray parameter t
   Double ->
-  -- | The ray that caused the hit
+  -- The ray that caused the hit
   Ray ->
   HitRecord
 mkHitRecord p outwardNormal t ray =
@@ -46,19 +47,16 @@ mkHitRecord p outwardNormal t ray =
           frontFace = isFrontFace
         }
 
--- | Class for objects that can be hit by a ray
+-- Class for objects that can be hit by a ray
 class Hittable a where
-  -- | Determine if and where a ray intersects an object
+  -- Determine if and where a ray intersects an object
   hit ::
-    -- | The object to test
+    -- The object to test
     a ->
-    -- | The ray to test with
+    -- The ray to test with
     Ray ->
-    -- | Minimum distance along ray
-    Double ->
-    -- | Maximum distance along ray
-    Double ->
-    -- | Hit information if intersection occurred
+    Interval ->
+    -- Hit information if intersection occurred
     Maybe HitRecord
 
 setFaceNormal :: Ray -> Vec3 -> HitRecord -> HitRecord

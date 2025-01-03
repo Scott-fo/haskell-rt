@@ -13,6 +13,7 @@ where
 
 import Data.List (foldl')
 import Hittable (HitRecord (hitT), Hittable (hit))
+import Interval (Interval)
 import Ray (Ray)
 
 data SomeHittable = forall a. (Hittable a) => SomeHittable a
@@ -33,18 +34,17 @@ add :: (Hittable a) => a -> HittableList -> HittableList
 add obj (HittableList objects) = HittableList (SomeHittable obj : objects)
 
 instance Hittable HittableList where
-  hit (HittableList objects) ray tmin tmax =
-    foldl' (closestHit ray tmin tmax) Nothing objects
+  hit (HittableList objects) ray interval =
+    foldl' (closestHit ray interval) Nothing objects
 
 closestHit ::
   Ray ->
-  Double ->
-  Double ->
+  Interval ->
   Maybe HitRecord ->
   SomeHittable ->
   Maybe HitRecord
-closestHit ray tmin tmax acc (SomeHittable obj) =
-  case (acc, hit obj ray tmin tmax) of
+closestHit ray interval acc (SomeHittable obj) =
+  case (acc, hit obj ray interval) of
     (Nothing, hit') -> hit'
     (Just closest, Just candidate)
       | hitT candidate < hitT closest -> Just candidate
