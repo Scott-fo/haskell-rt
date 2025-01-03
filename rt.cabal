@@ -64,7 +64,16 @@ executable rt
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    other-modules: Vec3, Colour, Ray, Hittable, Sphere, HittableList, Interval, Camera, Utils
+    other-modules: 
+        Vec3
+        Colour
+        Ray
+        Hittable
+        Sphere
+        HittableList
+        Interval
+        Camera
+        Utils
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

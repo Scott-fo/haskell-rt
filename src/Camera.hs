@@ -9,19 +9,19 @@ module Camera
   )
 where
 
-import Colour (Colour (Colour), mkColour, mulColour, sumColours, writeColour)
+import Colour (Colour, addColours, black, blue, mulColour, mulColours, sumColours, white, writeColour)
 import Control.Concurrent (getNumCapabilities)
 import Control.Concurrent.Async (mapConcurrently)
 import Control.Monad (replicateM)
 import Data.List (foldl')
 import Data.Maybe (fromMaybe)
-import Hittable (HitRecord (HitRecord, hitPoint, normal), Hittable (hit))
+import Hittable (HitRecord (mat), Hittable (hit), Material (scatter), MaterialWrapper (MaterialWrapper), ScatterResult (ScatterResult, attenuation, scattered))
 import HittableList (HittableList)
 import Interval (unsafeMkInterval)
 import Ray (Ray (Ray, direction))
 import System.Random.Stateful (mkStdGen)
 import Utils (RayM, randomDoubleRange, runRayM)
-import Vec3 (Point3, Vec3 (Vec3), add, mul, randomUnitVec3, sub, unitVector)
+import Vec3 (Point3, Vec3 (Vec3), add, mul, sub, unitVector)
 
 data Camera = Camera
   { aspectRatio :: Double,
@@ -87,7 +87,7 @@ samplePixel camera@Camera {..} world (i, j) = do
     rayColour ray maxDepth world
 
   let pixelScale = 1.0 / fromIntegral samplesPerPixel
-  return $ mulColour pixelScale (sumColours samples)
+  return $ mulColour (sumColours samples) pixelScale
 
 renderChunk :: Camera -> HittableList -> (Int, Int) -> IO String
 renderChunk camera world (start, end) = do
@@ -123,26 +123,34 @@ getRay Camera {..} i j = do
 
 rayColour :: Ray -> Int -> HittableList -> RayM Colour
 rayColour ray depth world
-  | depth <= 0 = return $ Colour $ Vec3 0 0 0
-  | otherwise =
+  | depth <= 0 = return black
+  | otherwise = do
       maybe
         (return $ backgroundColour ray)
-        (\rec -> sphereColour rec depth world)
-        (hit world ray (unsafeMkInterval 0.001 infinity))
+        (handleHit ray depth world)
+        (hit world ray (unsafeMkInterval 0.0001 infinity))
 
-sphereColour :: HitRecord -> Int -> HittableList -> RayM Colour
-sphereColour HitRecord {..} depth world = do
-  direction <- randomUnitVec3
-  colour <- rayColour (Ray hitPoint (direction `Vec3.add` normal)) (depth - 1) world
-  return $ mulColour 0.5 colour
+handleHit :: Ray -> Int -> HittableList -> HitRecord -> RayM Colour
+handleHit ray depth world rec = do
+  scatterResult <- scatterFromMaterial (mat rec) ray rec
+  maybe
+    (return black)
+    (handleScatter depth world)
+    scatterResult
+
+handleScatter :: Int -> HittableList -> ScatterResult -> RayM Colour
+handleScatter depth world ScatterResult {..} = do
+  bounceColour <- rayColour scattered (depth - 1) world
+  return $ mulColours attenuation bounceColour
+
+scatterFromMaterial :: MaterialWrapper -> Ray -> HitRecord -> RayM (Maybe ScatterResult)
+scatterFromMaterial (MaterialWrapper material) = scatter material
 
 backgroundColour :: Ray -> Colour
-backgroundColour Ray {..} = fromMaybe (mkColour 0 0 0) $ do
+backgroundColour Ray {..} = fromMaybe black $ do
   Vec3 _ y _ <- unitVector direction
   let t = 0.5 * (y + 1.0)
-      white = Vec3 1.0 1.0 1.0
-      blue = Vec3 0.5 0.7 1.0
-  return $ Colour $ Vec3.add (mul white (1.0 - t)) (mul blue t)
+  return $ addColours (mulColour white (1.0 - t)) (mulColour blue t)
 
 ppmHeader :: Int -> Int -> String
 ppmHeader w h =

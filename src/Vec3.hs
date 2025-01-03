@@ -43,6 +43,16 @@ unitVector v
   where
     vl = Vec3.length v
 
+nearZero :: Vec3 -> Bool
+nearZero (Vec3 x' y' z') =
+  x' < s && y' < s && z' < s
+  where
+    s = 1e-8
+
+reflect :: Vec3 -> Vec3 -> Vec3
+reflect v n =
+  v `sub` mul n (2 * dot v n)
+
 randomVec3 :: RayM Vec3
 randomVec3 = do
   x <- randomDouble
