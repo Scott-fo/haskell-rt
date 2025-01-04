@@ -53,6 +53,13 @@ reflect :: Vec3 -> Vec3 -> Vec3
 reflect v n =
   v `sub` mul n (2 * dot v n)
 
+refract :: Vec3 -> Vec3 -> Double -> Vec3
+refract uv n etaiOverEtat = rOutPerp `add` rOutParallel
+  where
+    cosTheta = min 1.0 $ dot (negative uv) n
+    rOutPerp = mul (add uv (mul n cosTheta)) etaiOverEtat
+    rOutParallel = mul n $ negate $ sqrt $ abs $ 1.0 - lengthSquared rOutPerp
+
 randomVec3 :: RayM Vec3
 randomVec3 = do
   x <- randomDouble

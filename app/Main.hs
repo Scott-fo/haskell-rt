@@ -5,7 +5,7 @@ import Colour (Colour (Colour))
 import Control.Exception (IOException, try)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
-import Hittable (Lambertian (Lambertian), MaterialWrapper (MaterialWrapper), Metal (Metal))
+import Hittable (Dielectric (Dielectric), Lambertian (Lambertian), MaterialWrapper (MaterialWrapper), Metal (Metal))
 import HittableList (fromList)
 import Sphere (Sphere (Sphere), center, material, radius)
 import System.IO (hPutStrLn, stderr)
@@ -15,7 +15,7 @@ main :: IO ()
 main = do
   let groundMaterial = MaterialWrapper $ Lambertian $ Colour $ Vec3 0.8 0.8 0.0
       centerMaterial = MaterialWrapper $ Lambertian $ Colour $ Vec3 0.1 0.2 0.5
-      leftMaterial = MaterialWrapper $ Metal (Colour $ Vec3 0.8 0.8 0.8) 0.3
+      leftMaterial = MaterialWrapper $ Dielectric 1.5
       rightMaterial = MaterialWrapper $ Metal (Colour $ Vec3 0.8 0.6 0.2) 1.0
 
       groundSphere =

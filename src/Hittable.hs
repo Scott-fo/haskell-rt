@@ -8,16 +8,17 @@ module Hittable
     Material (..),
     Lambertian (..),
     Metal (..),
+    Dielectric (..),
     mkHitRecord,
     setFaceNormal,
   )
 where
 
-import Colour (Colour)
+import Colour (Colour, white)
 import Interval (Interval)
 import Ray (Ray (Ray, direction))
 import Utils (RayM)
-import Vec3 (Point3, Vec3, add, dot, mul, nearZero, negative, randomUnitVec3, reflect, unitVector)
+import Vec3 (Point3, Vec3, add, dot, mul, nearZero, negative, randomUnitVec3, reflect, refract, unitVector)
 
 data ScatterResult = ScatterResult
   { scattered :: Ray,
@@ -61,6 +62,19 @@ instance Material Metal where
         let finalDirection = normalizedReflection `Vec3.add` Vec3.mul randomUnitVec fuzz'
             scattered' = Ray (hitPoint rec) finalDirection
          in return $ Just $ ScatterResult scattered' albedo'
+
+newtype Dielectric = Dielectric Double
+  deriving (Show)
+
+instance Material Dielectric where
+  scatter (Dielectric refractionIndex) r_in rec = do
+    let ri = if frontFace rec then 1 / refractionIndex else refractionIndex
+    case unitVector (direction r_in) of
+      Nothing -> return Nothing
+      Just unitDirection ->
+        let refracted = refract unitDirection (normal rec) ri
+            scattered' = Ray (hitPoint rec) refracted
+         in return $ Just $ ScatterResult scattered' white
 
 -- Records the details of a ray-object intersection
 data HitRecord = HitRecord
