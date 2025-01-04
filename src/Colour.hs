@@ -7,6 +7,8 @@ module Colour
     mulColours,
     toRgb,
     mkColour,
+    randomColour,
+    randomColourRange,
     white,
     black,
     blue,
@@ -14,7 +16,8 @@ module Colour
 where
 
 import Data.List (foldl')
-import Vec3 (Vec3 (Vec3), add, mul)
+import Utils (RayM)
+import Vec3 (Vec3 (Vec3), add, mul, randomVec3, randomVec3Range)
 
 newtype Colour = Colour Vec3
   deriving (Show, Eq)
@@ -48,6 +51,12 @@ mulColour (Colour v) s = Colour (mul v s)
 
 mulColours :: Colour -> Colour -> Colour
 mulColours (Colour (Vec3 x1 y1 z1)) (Colour (Vec3 x2 y2 z2)) = mkColour (x1 * x2) (y1 * y2) (z1 * z2)
+
+randomColour :: RayM Colour
+randomColour = do Colour <$> randomVec3
+
+randomColourRange :: Double -> Double -> RayM Colour
+randomColourRange min' max' = do Colour <$> randomVec3Range min' max'
 
 black :: Colour
 black = mkColour 0 0 0

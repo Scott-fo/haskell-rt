@@ -48,19 +48,19 @@ data Camera = Camera
 initialize :: Camera
 initialize = do
   let aspectRatio = 16.0 / 9.0 :: Double
-      imageWidth = 400 :: Int
+      imageWidth = 1200 :: Int
       imageHeight = floor (fromIntegral imageWidth / aspectRatio)
 
-      samplesPerPixel = 100
+      samplesPerPixel = 10
       maxDepth = 50
-      vfov = 20
 
-      lookFrom = Vec3 (-2) 2 1 :: Point3
-      lookAt = Vec3 0 0 (-1.0) :: Point3
+      vfov = 20
+      lookFrom = Vec3 13 2 3 :: Point3
+      lookAt = Vec3 0 0 0 :: Point3
       vup = Vec3 0 1 0
 
-      defocusAngle = 10
-      focusDist = 3.4 :: Double
+      defocusAngle = 0.6
+      focusDist = 10 :: Double
 
       center = lookFrom
 
