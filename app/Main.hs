@@ -15,8 +15,8 @@ main :: IO ()
 main = do
   let groundMaterial = MaterialWrapper $ Lambertian $ Colour $ Vec3 0.8 0.8 0.0
       centerMaterial = MaterialWrapper $ Lambertian $ Colour $ Vec3 0.1 0.2 0.5
-      leftMaterial = MaterialWrapper $ Metal $ Colour $ Vec3 0.8 0.8 0.8
-      rightMaterial = MaterialWrapper $ Metal $ Colour $ Vec3 0.8 0.6 0.2
+      leftMaterial = MaterialWrapper $ Metal (Colour $ Vec3 0.8 0.8 0.8) 0.3
+      rightMaterial = MaterialWrapper $ Metal (Colour $ Vec3 0.8 0.6 0.2) 1.0
 
       groundSphere =
         Sphere

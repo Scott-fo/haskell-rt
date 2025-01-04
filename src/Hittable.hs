@@ -17,7 +17,7 @@ import Colour (Colour)
 import Interval (Interval)
 import Ray (Ray (Ray, direction))
 import Utils (RayM)
-import Vec3 (Point3, Vec3, add, dot, nearZero, negative, randomUnitVec3, reflect)
+import Vec3 (Point3, Vec3, add, dot, mul, nearZero, negative, randomUnitVec3, reflect, unitVector)
 
 data ScatterResult = ScatterResult
   { scattered :: Ray,
@@ -38,21 +38,29 @@ newtype Lambertian = Lambertian Colour
   deriving (Show)
 
 instance Material Lambertian where
-  scatter (Lambertian albedo) _ rec = do
+  scatter (Lambertian albedo') _ rec = do
     randomUnit <- randomUnitVec3
     let scatterDirection = Vec3.add (normal rec) randomUnit
         scatterDirection' = if nearZero scatterDirection then normal rec else scatterDirection
         scattered' = Ray (hitPoint rec) scatterDirection'
-    return $ Just $ ScatterResult scattered' albedo
+    return $ Just $ ScatterResult scattered' albedo'
 
-newtype Metal = Metal Colour
+data Metal = Metal
+  { albedo :: Colour,
+    fuzz :: Double
+  }
   deriving (Show)
 
 instance Material Metal where
-  scatter (Metal albedo) r_in rec = do
+  scatter (Metal albedo' fuzz') r_in rec = do
+    randomUnitVec <- randomUnitVec3
     let reflected = reflect (direction r_in) (normal rec)
-        scattered' = Ray (hitPoint rec) reflected
-    return $ Just $ ScatterResult scattered' albedo
+    case unitVector reflected of
+      Nothing -> return Nothing
+      Just normalizedReflection ->
+        let finalDirection = normalizedReflection `Vec3.add` Vec3.mul randomUnitVec fuzz'
+            scattered' = Ray (hitPoint rec) finalDirection
+         in return $ Just $ ScatterResult scattered' albedo'
 
 -- Records the details of a ray-object intersection
 data HitRecord = HitRecord
