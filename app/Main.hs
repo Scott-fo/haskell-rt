@@ -16,7 +16,7 @@ import Vec3 (Vec3 (Vec3), length, sub)
 
 main :: IO ()
 main = do
-  let initialGen = mkStdGen 42
+  let initialGen = mkStdGen 69420
       (world, _) = runRayM buildWorld initialGen
 
   image <- render world
@@ -41,14 +41,19 @@ generateSphereMaterial = do
       | otherwise ->
           return $ MaterialWrapper $ Dielectric 1.5
 
-generateSphere :: Double -> Double -> RayM (Maybe Sphere)
-generateSphere a b = do
+generateSphere :: [(Vec3, Double)] -> Double -> Double -> RayM (Maybe Sphere)
+generateSphere refPoints a b = do
   rx <- randomDouble
   rz <- randomDouble
-  let center' = Vec3 (a + 0.9 * rx) 0.2 (b + 0.9 * rz)
-      comparePoint = Vec3 4 0.2 0
+  let center' = Vec3 (a + (0.9 * rx)) 0.2 (b + (0.9 * rz))
+      tooClose =
+        any
+          ( \(pos, minDist) ->
+              Vec3.length (Vec3.sub center' pos) < minDist
+          )
+          refPoints
 
-  if Vec3.length (Vec3.sub center' comparePoint) > 0.9
+  if not tooClose
     then do
       Just . Sphere center' 0.2 <$> generateSphereMaterial
     else return Nothing
@@ -62,28 +67,39 @@ buildWorld = do
             material = MaterialWrapper $ Lambertian $ Colour $ Vec3 0.5 0.5 0.5
           }
 
+      sphere1Center = Vec3 0 1 0
+      sphere2Center = Vec3 (-4) 1 0
+      sphere3Center = Vec3 4 1 0
+
       sphere1 =
         Sphere
-          { center = Vec3 0 1 0,
+          { center = sphere1Center,
             radius = 1.0,
             material = MaterialWrapper $ Dielectric 1.5
           }
 
       sphere2 =
         Sphere
-          { center = Vec3 (-4) 1 0,
+          { center = sphere2Center,
             radius = 1.0,
             material = MaterialWrapper $ Lambertian $ Colour $ Vec3 0.4 0.2 0.1
           }
 
       sphere3 =
         Sphere
-          { center = Vec3 4 1 0,
+          { center = sphere3Center,
             radius = 1.0,
             material = MaterialWrapper $ Metal (Colour $ Vec3 0.7 0.6 0.5) 0.0
           }
 
+      refPoints =
+        [ (sphere1Center, 1.4),
+          (sphere2Center, 1.4),
+          (sphere3Center, 1.4),
+          (Vec3 4 0.2 0, 0.9)
+        ]
+
   randomSpheres <-
-    traverse (uncurry generateSphere) [(a, b) | a <- [-11 .. 11], b <- [-11 .. 11]]
+    traverse (uncurry $ generateSphere refPoints) [(a, b) | a <- [-11 .. 10], b <- [-11 .. 10]]
 
   return $ fromList $ groundSphere : sphere1 : sphere2 : sphere3 : catMaybes randomSpheres

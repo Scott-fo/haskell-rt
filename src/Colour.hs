@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module Colour
   ( Colour (Colour),
     writeColour,
@@ -15,12 +17,16 @@ module Colour
   )
 where
 
+import Control.Parallel.Strategies (NFData)
 import Data.List (foldl')
+import GHC.Generics (Generic)
 import Utils (RayM)
 import Vec3 (Vec3 (Vec3), add, mul, randomVec3, randomVec3Range)
 
 newtype Colour = Colour Vec3
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
+
+instance NFData Colour
 
 mkColour :: Double -> Double -> Double -> Colour
 mkColour r g b = Colour $ Vec3 (clamp r) (clamp g) (clamp b)

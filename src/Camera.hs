@@ -11,11 +11,12 @@ module Camera
 where
 
 import Colour (Colour, addColours, black, blue, mulColour, mulColours, sumColours, white, writeColour)
-import Control.Concurrent (getNumCapabilities)
-import Control.Concurrent.Async (mapConcurrently)
 import Control.Monad (replicateM)
+import Control.Parallel.Strategies
 import Data.List (foldl')
+import Data.List.Split (chunksOf)
 import Data.Maybe (fromMaybe)
+import GHC.Conc (numCapabilities)
 import Hittable (HitRecord (mat), Hittable (hit), Material (scatter), MaterialWrapper (MaterialWrapper), ScatterResult (ScatterResult, attenuation, scattered))
 import HittableList (HittableList)
 import Interval (unsafeMkInterval)
@@ -51,7 +52,7 @@ initialize = do
       imageWidth = 1200 :: Int
       imageHeight = floor (fromIntegral imageWidth / aspectRatio)
 
-      samplesPerPixel = 10
+      samplesPerPixel = 500
       maxDepth = 50
 
       vfov = 20
@@ -96,18 +97,6 @@ initialize = do
       defocusDiskV = mul v defocusRadius
    in Camera {..}
 
-splitIntoChunks :: Int -> Int -> [(Int, Int)]
-splitIntoChunks numChunks total =
-  let chunkSize = total `div` numChunks
-      remainder = total `mod` numChunks
-      sizes = replicate remainder (chunkSize + 1) ++ replicate (numChunks - remainder) chunkSize
-      starts = scanl (+) 0 sizes
-   in zip starts (tail starts)
-
-generatePixelCoords :: Int -> Int -> Int -> [(Int, Int)]
-generatePixelCoords imageWidth start end =
-  [(i, j) | j <- [start .. end - 1], i <- [0 .. imageWidth - 1]]
-
 samplePixel :: Camera -> HittableList -> (Int, Int) -> RayM Colour
 samplePixel camera@Camera {..} world (i, j) = do
   samples <- replicateM samplesPerPixel $ do
@@ -117,22 +106,26 @@ samplePixel camera@Camera {..} world (i, j) = do
   let pixelScale = 1.0 / fromIntegral samplesPerPixel
   return $ mulColour (sumColours samples) pixelScale
 
-renderChunk :: Camera -> HittableList -> (Int, Int) -> IO String
-renderChunk camera world (start, end) = do
-  let initialGen = mkStdGen (42 + start)
-      pixels = generatePixelCoords (imageWidth camera) start end
-      (colours, _) = runRayM (mapM (samplePixel camera world) pixels) initialGen
-  return $ unlines (map writeColour colours)
-
 render :: HittableList -> IO String
 render world = do
-  numCores <- getNumCapabilities
   let camera = initialize
-      chunks = splitIntoChunks numCores (imageHeight camera)
-      header = ppmHeader (imageWidth camera) (imageHeight camera)
+      allPixels =
+        [(i, j) | j <- [0 .. imageHeight camera - 1], i <- [0 .. imageWidth camera - 1]]
 
-  chunkResults <- mapConcurrently (renderChunk camera world) chunks
-  return $ header ++ concat chunkResults
+      chunkSize = (imageHeight camera * imageWidth camera) `div` (numCapabilities * 4)
+      chunks = chunksOf chunkSize allPixels
+
+      renderChunk :: Int -> [(Int, Int)] -> [Colour]
+      renderChunk chunkIndex pixels =
+        let initialGen = mkStdGen (69420 + (chunkIndex * chunkSize))
+            (colours, _) = runRayM (mapM (samplePixel camera world) pixels) initialGen
+         in colours
+
+      allColours = concat $ using (zipWith renderChunk [0 ..] chunks) (parList rdeepseq)
+
+  return $
+    ppmHeader (imageWidth camera) (imageHeight camera)
+      ++ unlines (map writeColour allColours)
 
 getRay :: Camera -> Int -> Int -> RayM Ray
 getRay camera@Camera {..} i j = do

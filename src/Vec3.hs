@@ -1,9 +1,15 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module Vec3 where
 
+import Control.Parallel.Strategies (NFData)
+import GHC.Generics (Generic)
 import Utils (RayM, randomDouble, randomDoubleRange)
 
 data Vec3 = Vec3 !Double !Double !Double
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
+
+instance NFData Vec3
 
 type Point3 = Vec3
 
