@@ -17,7 +17,7 @@ where
 import Colour (Colour, white)
 import Interval (Interval)
 import Ray (Ray (Ray, direction))
-import Utils (RayM)
+import Utils (RayM, randomDouble)
 import Vec3 (Point3, Vec3, add, dot, mul, nearZero, negative, randomUnitVec3, reflect, refract, unitVector)
 
 data ScatterResult = ScatterResult
@@ -68,13 +68,24 @@ newtype Dielectric = Dielectric Double
 
 instance Material Dielectric where
   scatter (Dielectric refractionIndex) r_in rec = do
+    r0 <- randomDouble
     let ri = if frontFace rec then 1 / refractionIndex else refractionIndex
     case unitVector (direction r_in) of
       Nothing -> return Nothing
       Just unitDirection ->
-        let refracted = refract unitDirection (normal rec) ri
-            scattered' = Ray (hitPoint rec) refracted
+        let cosTheta = min 1 $ dot (negative unitDirection) (normal rec)
+            sinTheta = sqrt 1 - (cosTheta * cosTheta)
+            willReflect = (ri * sinTheta > 1.0) || (schlick cosTheta ri > r0)
+            direction' =
+              if willReflect
+                then reflect unitDirection (normal rec)
+                else refract unitDirection (normal rec) ri
+            scattered' = Ray (hitPoint rec) direction'
          in return $ Just $ ScatterResult scattered' white
+    where
+      schlick cosine refIdx =
+        let r0 = ((1.0 - refIdx) / (1.0 + refIdx)) ^ (2 :: Int)
+         in r0 + (1.0 - r0) * ((1.0 - cosine) ^ (5 :: Int))
 
 -- Records the details of a ray-object intersection
 data HitRecord = HitRecord

@@ -16,6 +16,7 @@ main = do
   let groundMaterial = MaterialWrapper $ Lambertian $ Colour $ Vec3 0.8 0.8 0.0
       centerMaterial = MaterialWrapper $ Lambertian $ Colour $ Vec3 0.1 0.2 0.5
       leftMaterial = MaterialWrapper $ Dielectric 1.5
+      bubbleMaterial = MaterialWrapper $ Dielectric (1.0 / 1.5)
       rightMaterial = MaterialWrapper $ Metal (Colour $ Vec3 0.8 0.6 0.2) 1.0
 
       groundSphere =
@@ -36,6 +37,12 @@ main = do
             radius = 0.5,
             material = leftMaterial
           }
+      bubbleSphere =
+        Sphere
+          { center = Vec3 (-1.0) 0.0 (-1.0),
+            radius = 0.4,
+            material = bubbleMaterial
+          }
       rightSphere =
         Sphere
           { center = Vec3 1.0 0.0 (-1.0),
@@ -43,7 +50,7 @@ main = do
             material = rightMaterial
           }
 
-      world = fromList [groundSphere, centerSphere, leftSphere, rightSphere]
+      world = fromList [groundSphere, centerSphere, leftSphere, bubbleSphere, rightSphere]
 
   image <- render world
 
