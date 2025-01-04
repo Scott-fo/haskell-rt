@@ -4,6 +4,7 @@ module Camera
   ( Camera (Camera),
     aspectRatio,
     imageWidth,
+    vfov,
     initialize,
     render,
   )
@@ -20,7 +21,7 @@ import HittableList (HittableList)
 import Interval (unsafeMkInterval)
 import Ray (Ray (Ray, direction))
 import System.Random.Stateful (mkStdGen)
-import Utils (RayM, randomDoubleRange, runRayM)
+import Utils (RayM, degreesToRadians, randomDoubleRange, runRayM)
 import Vec3 (Point3, Vec3 (Vec3), add, mul, sub, unitVector)
 
 data Camera = Camera
@@ -28,6 +29,7 @@ data Camera = Camera
     imageWidth :: Int,
     samplesPerPixel :: Int,
     maxDepth :: Int,
+    vfov :: Double,
     imageHeight :: Int,
     center :: Point3,
     pixel00Loc :: Point3,
@@ -44,9 +46,13 @@ initialize =
 
       samplesPerPixel = 100
       maxDepth = 50
+      vfov = 90
 
       focalLength = 1.0 :: Double
-      viewportHeight = 2.0 :: Double
+      theta = degreesToRadians vfov
+      h = tan (theta / 2)
+
+      viewportHeight = 2.0 * h * focalLength
       viewportWidth = viewportHeight * (fromIntegral imageWidth / fromIntegral imageHeight)
 
       center = Vec3 0 0 0 :: Point3

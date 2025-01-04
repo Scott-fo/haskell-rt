@@ -22,3 +22,6 @@ randomDoubleRange :: Double -> Double -> RayM Double
 randomDoubleRange min' max' = do
   r <- randomDouble
   return $ min' + (max' - min') * r
+
+degreesToRadians :: Double -> Double
+degreesToRadians degrees = degrees * pi / 180
