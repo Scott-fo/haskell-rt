@@ -22,7 +22,7 @@ import Interval (unsafeMkInterval)
 import Ray (Ray (Ray, direction))
 import System.Random.Stateful (mkStdGen)
 import Utils (RayM, degreesToRadians, randomDoubleRange, runRayM)
-import Vec3 (Point3, Vec3 (Vec3), add, mul, sub, unitVector)
+import Vec3 (Point3, Vec3 (Vec3), add, cross, length, mul, negative, sub, unitVector)
 
 data Camera = Camera
   { aspectRatio :: Double,
@@ -30,6 +30,9 @@ data Camera = Camera
     samplesPerPixel :: Int,
     maxDepth :: Int,
     vfov :: Double,
+    lookFrom :: Point3,
+    lookAt :: Point3,
+    vup :: Vec3,
     imageHeight :: Int,
     center :: Point3,
     pixel00Loc :: Point3,
@@ -39,7 +42,7 @@ data Camera = Camera
   deriving (Show)
 
 initialize :: Camera
-initialize =
+initialize = do
   let aspectRatio = 16.0 / 9.0 :: Double
       imageWidth = 400 :: Int
       imageHeight = floor (fromIntegral imageWidth / aspectRatio)
@@ -48,16 +51,25 @@ initialize =
       maxDepth = 50
       vfov = 90
 
-      focalLength = 1.0 :: Double
+      lookFrom = Vec3 (-2) 2 1 :: Point3
+      lookAt = Vec3 0 0 (-1.0) :: Point3
+      vup = Vec3 0 1 0
+
+      center = lookFrom
+
+      focalLength = Vec3.length $ Vec3.sub lookFrom lookAt
       theta = degreesToRadians vfov
       h = tan (theta / 2)
 
       viewportHeight = 2.0 * h * focalLength
       viewportWidth = viewportHeight * (fromIntegral imageWidth / fromIntegral imageHeight)
 
-      center = Vec3 0 0 0 :: Point3
-      viewportU = Vec3 viewportWidth 0 0
-      viewportV = Vec3 0 (-viewportHeight) 0
+      w = fromMaybe (error "Failed to initialise camera") (unitVector $ Vec3.sub lookFrom lookAt)
+      u = fromMaybe (error "Failed to initialise camera") (unitVector $ cross vup w)
+      v = cross w u
+
+      viewportU = mul u viewportWidth
+      viewportV = mul (negative v) viewportHeight
 
       pixelDeltaU = mul viewportU (1 / fromIntegral imageWidth)
       pixelDeltaV = mul viewportV (1 / fromIntegral imageHeight)
@@ -66,7 +78,7 @@ initialize =
         foldl'
           sub
           center
-          [ Vec3 0 0 focalLength,
+          [ mul w focalLength,
             mul viewportU 0.5,
             mul viewportV 0.5
           ]
