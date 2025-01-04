@@ -22,7 +22,7 @@ import Interval (unsafeMkInterval)
 import Ray (Ray (Ray, direction))
 import System.Random.Stateful (mkStdGen)
 import Utils (RayM, degreesToRadians, randomDoubleRange, runRayM)
-import Vec3 (Point3, Vec3 (Vec3), add, cross, length, mul, negative, sub, unitVector)
+import Vec3 (Point3, Vec3 (Vec3), add, cross, mul, negative, randomInUnitDisk, sub, unitVector)
 
 data Camera = Camera
   { aspectRatio :: Double,
@@ -30,6 +30,8 @@ data Camera = Camera
     samplesPerPixel :: Int,
     maxDepth :: Int,
     vfov :: Double,
+    defocusAngle :: Double,
+    focusDist :: Double,
     lookFrom :: Point3,
     lookAt :: Point3,
     vup :: Vec3,
@@ -37,7 +39,9 @@ data Camera = Camera
     center :: Point3,
     pixel00Loc :: Point3,
     pixelDeltaU :: Vec3,
-    pixelDeltaV :: Vec3
+    pixelDeltaV :: Vec3,
+    defocusDiskU :: Vec3,
+    defocusDiskV :: Vec3
   }
   deriving (Show)
 
@@ -49,19 +53,21 @@ initialize = do
 
       samplesPerPixel = 100
       maxDepth = 50
-      vfov = 90
+      vfov = 20
 
       lookFrom = Vec3 (-2) 2 1 :: Point3
       lookAt = Vec3 0 0 (-1.0) :: Point3
       vup = Vec3 0 1 0
 
+      defocusAngle = 10
+      focusDist = 3.4 :: Double
+
       center = lookFrom
 
-      focalLength = Vec3.length $ Vec3.sub lookFrom lookAt
       theta = degreesToRadians vfov
       h = tan (theta / 2)
 
-      viewportHeight = 2.0 * h * focalLength
+      viewportHeight = 2.0 * h * focusDist
       viewportWidth = viewportHeight * (fromIntegral imageWidth / fromIntegral imageHeight)
 
       w = fromMaybe (error "Failed to initialise camera") (unitVector $ Vec3.sub lookFrom lookAt)
@@ -78,12 +84,16 @@ initialize = do
         foldl'
           sub
           center
-          [ mul w focalLength,
+          [ mul w focusDist,
             mul viewportU 0.5,
             mul viewportV 0.5
           ]
 
       pixel00Loc = viewportUpperLeft `Vec3.add` ((pixelDeltaU `Vec3.add` pixelDeltaV) `mul` 0.5)
+
+      defocusRadius = focusDist * tan (degreesToRadians (defocusAngle / 2))
+      defocusDiskU = mul u defocusRadius
+      defocusDiskV = mul v defocusRadius
    in Camera {..}
 
 splitIntoChunks :: Int -> Int -> [(Int, Int)]
@@ -125,9 +135,10 @@ render world = do
   return $ header ++ concat chunkResults
 
 getRay :: Camera -> Int -> Int -> RayM Ray
-getRay Camera {..} i j = do
+getRay camera@Camera {..} i j = do
   offsetX <- randomDoubleRange (-0.5) 0.5
   offsetY <- randomDoubleRange (-0.5) 0.5
+  sample <- defocusDiskSample camera
 
   let pixelSample =
         foldl'
@@ -137,7 +148,14 @@ getRay Camera {..} i j = do
             mul pixelDeltaV (fromIntegral j + offsetY)
           ]
 
-  return $ Ray center (pixelSample `sub` center)
+  let rayOrigin = if defocusAngle <= 0 then center else sample
+      rayDirection = pixelSample `sub` rayOrigin
+  return $ Ray rayOrigin rayDirection
+
+defocusDiskSample :: Camera -> RayM Point3
+defocusDiskSample Camera {..} = do
+  (Vec3 x y _) <- randomInUnitDisk
+  return $ foldl' Vec3.add center [mul defocusDiskU x, mul defocusDiskV y]
 
 rayColour :: Ray -> Int -> HittableList -> RayM Colour
 rayColour ray depth world

@@ -85,3 +85,13 @@ randomOnHemisphere normal = do
     if dot onUnitSphere normal > 0
       then onUnitSphere
       else negative onUnitSphere
+
+randomInUnitDisk :: RayM Vec3
+randomInUnitDisk = do
+  x <- randomDoubleRange (-1) 1
+  y <- randomDoubleRange (-1) 1
+
+  let p = Vec3 x y 0
+  if lengthSquared p < 1
+    then return p
+    else randomInUnitDisk
